@@ -1,3 +1,151 @@
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
+---------------------------------------------------------
+-- 1. TABLA PRINCIPAL DE USUARIOS
+---------------------------------------------------------
+CREATE TABLE usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    apellido_p varchar(25) not null, 
+    apellido_m varchar(25) not null, 
+    email nVARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    telefono nchar(10) not null,
+    ubicacion text null,
+    tipo_usuario ENUM('admin','comerciante','agricultor') NOT NULL
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+---------------------------------------------------------
+-- 2. TABLAS INDIVIDUALES SEGÚN TIPO
+---------------------------------------------------------
+
+-- Agricultor
+CREATE TABLE agricultores (
+    id_agricultor INT PRIMARY KEY,
+    contacto nvarchar(100) null,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_agricultor) REFERENCES usuarios(id_usuario)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Comerciante (ANTES: clientes)
+CREATE TABLE comerciantes (
+    id_comerciante INT PRIMARY KEY,
+    negocio nvarchar(100) null,
+    correo_negocio nvarchar(255) null,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_comerciante) REFERENCES usuarios(id_usuario)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Admin
+CREATE TABLE admins (
+    id_admin INT PRIMARY KEY,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_admin) REFERENCES usuarios(id_usuario)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+---------------------------------------------------------
+-- 3. TABLA: ALIMENTOS (SOLO ADMIN LOS GESTIONA)
+---------------------------------------------------------
+create table grupos_mixtos (
+	id_gm int auto_increment primary key,
+    grupo nvarchar(100) not null,
+    tipo enum('fruta', 'verdura') not null,
+    descripcion text
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE alimentos (
+    id_alimento INT AUTO_INCREMENT PRIMARY KEY,
+    id_gm int not null,
+    nombre VARCHAR(100) NOT NULL,
+    vida_util_dias INT NOT NULL,
+    descripcion TEXT,
+    foreign key (id_gm) references grupos_mixtos(id_gm)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+---------------------------------------------------------
+-- 4. COSECHAS (FASE 1)
+---------------------------------------------------------
+CREATE TABLE cosechas (
+    id_cosecha INT AUTO_INCREMENT PRIMARY KEY,
+    serie_cosecha VARCHAR(50) NOT NULL UNIQUE,
+    id_alimento INT NOT NULL,
+    id_agricultor INT NOT NULL,
+    id_comerciante int not null,
+    fecha_siembra DATE NOT NULL,
+    cantidad_sembrada INT NOT NULL,
+    humedad_actual FLOAT,
+    estado_actual ENUM('sembrado','creciendo','cosechado','almacenado') DEFAULT 'sembrado',
+
+    FOREIGN KEY (id_alimento) REFERENCES alimentos(id_alimento),
+    FOREIGN KEY (id_agricultor) REFERENCES agricultores(id_agricultor),
+    FOREIGN KEY (id_comerciante) REFERENCES comerciantes(id_comerciante)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Lecturas de sensores
+CREATE TABLE datos_cosechas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_cosecha INT NOT NULL,
+    temperatura FLOAT,
+    humedad FLOAT,
+    ph float,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_cosecha) REFERENCES cosechas(id_cosecha)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+---------------------------------------------------------
+-- 5. FASE 2 — ALMACENAMIENTO
+---------------------------------------------------------
+create table cuartos_alm(
+	id_cuarto int auto_increment primary key,
+	serie VARCHAR(100) NOT NULL
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE almacenamiento (
+    id_almacenamiento INT AUTO_INCREMENT PRIMARY KEY,
+    id_cuarto int NOT NULL,
+    id_cosecha INT NOT NULL,
+    fecha_entrada DATE NOT NULL,
+    fecha_salida DATE NULL,
+    estado_ambiente VARCHAR(255),
+    temperatura FLOAT,
+    humedad FLOAT,
+    gases FLOAT,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+	FOREIGN KEY (id_cuarto) REFERENCES cuartos_alm(id_cuarto)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE cuarto_lectura (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_almacenamiento INT NOT NULL,
+	estado_ambiente VARCHAR(255),
+    temperatura FLOAT,
+    humedad FLOAT,
+    gases FLOAT,
+
+    FOREIGN KEY (id_almacenamiento) REFERENCES almacenamiento(id_almacenamiento)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+---------------------------------------------------------
+-- 6. FASE 3 — CONSUMO Y EXPIRACIÓN
+---------------------------------------------------------
+CREATE TABLE consumo_cosecha (
+    id_consumo INT AUTO_INCREMENT PRIMARY KEY,
+    id_cosecha INT NOT NULL,
+    fecha_estim_expiracion DATE NOT NULL,
+    temperatura FLOAT,
+    peso_actual FLOAT,
+    desperdicio_estimado FLOAT,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_cosecha) REFERENCES cosechas(id_cosecha)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 ---------------------------------------------------------
 -- 1. GRUPOS MIXTOS
 ---------------------------------------------------------
@@ -25,7 +173,7 @@ VALUES
 ---------------------------------------------------------
 
 -- ADMIN
-INSERT INTO usuarios (nombre, apellido_p, apellido_m, email, password, telefono, ubicación, tipo_usuario)
+INSERT INTO usuarios (nombre, apellido_p, apellido_m, email, password, telefono, ubicacion, tipo_usuario)
 VALUES
 ('Carlos', 'Gómez', 'Ruiz', 'admin@foodsense.com', 'admin123', '5533221100', 'CDMX', 'admin');
 
@@ -34,7 +182,7 @@ INSERT INTO admins (id_admin) VALUES (1);
 ---------------------------------------------------------
 -- AGRICULTORES
 ---------------------------------------------------------
-INSERT INTO usuarios (nombre, apellido_p, apellido_m, email, password, telefono, ubicación, tipo_usuario)
+INSERT INTO usuarios (nombre, apellido_p, apellido_m, email, password, telefono, ubicacion, tipo_usuario)
 VALUES
 ('María', 'López', 'Vega', 'maria@campo.com', 'pass123', '5588997744', 'Toluca', 'agricultor'),
 ('Jorge', 'Díaz', 'Martínez', 'jorge@campo.com', 'pass123', '5577441122', 'Puebla', 'agricultor');
@@ -47,7 +195,7 @@ VALUES
 ---------------------------------------------------------
 -- COMERCIANTES
 ---------------------------------------------------------
-INSERT INTO usuarios (nombre, apellido_p, apellido_m, email, password, telefono, ubicación, tipo_usuario)
+INSERT INTO usuarios (nombre, apellido_p, apellido_m, email, password, telefono, ubicacion, tipo_usuario)
 VALUES
 ('Lucía', 'Hernández', 'Ríos', 'lucia@mercado.com', 'abc123', '5599881122', 'CDMX Centro', 'comerciante'),
 ('Pedro', 'Salas', 'García', 'pedro@mercado.com', 'abc123', '5511998844', 'Querétaro', 'comerciante');
