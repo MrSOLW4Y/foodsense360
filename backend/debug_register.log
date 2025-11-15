@@ -1,0 +1,15 @@
+Array
+(
+    [nombre] => JOCELYN
+    [apellido_p] => MARTINEZ
+    [apellido_m] => CARDENAS
+    [email] => soyjocelynmmtz@gmail.com
+    [password] => ERROR404
+    [confirmPassword] => ERROR404
+    [ubicacion] => 
+    [telefono] => 8711015964
+    [contacto] => GRINO
+    [negocio] => 
+    [correo_negocio] => 
+    [userType] => agricultor
+)
